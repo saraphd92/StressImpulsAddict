@@ -1,0 +1,467 @@
+---
+title: "SBI CODE"
+author: "SDM"
+date: "11.26.2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages and data}
+#Adjust location of file
+library(readxl)
+SBIdata_Sub <- read_excel("INSERTPATH/SBIdata_Sub.xlsx")
+View(SBIdata_Sub)
+
+slusbidata <- SBIdata_Sub
+options(scipen = 999)
+
+####Descriptives and Normality####
+library(tableone)
+library(psych)
+library(ggpubr)
+library(sjPlot)
+library(devtools)
+library(reghelper)
+library(PerformanceAnalytics)
+library(sjPlot)
+library(reghelper)
+library(devtools)
+library(jtools)
+library(ggplot2)
+library(tidyverse)
+library(kableExtra)
+library(lavaan)
+library(readr)
+library(haven)
+library(readxl)
+library(semTools)
+library(lme4)
+library(dplyr)
+
+
+```
+
+```{r examine normality and transform variables}
+
+####Transform Positively Skewed Variables####
+slusbidata$yfaslog = log(slusbidata$yfas+1)
+slusbidata$yaacqlog = log(slusbidata$yaacq+1)
+slusbidata$lackperslog = log(slusbidata$lackpers+1)
+slusbidata$lackpreslog = log(slusbidata$lackpres+1)
+slusbidata$stressctlog = log(slusbidata$stressct+1)
+slusbidata$stressthlog = log(slusbidata$stressth+1)
+slusbidata$eadiffctlog = log(slusbidata$eadiffct+1)
+slusbidata$adultctlog = log(slusbidata$adultct+1)
+slusbidata$negurgcor <- slusbidata$negurg
+slusbidata$senseekcor <- slusbidata$senseek
+slusbidata$posurgcor <- slusbidata$posurg
+View(slusbidata)
+
+
+```
+
+```{r HYPOTHESIS 1}
+####HYPOTHESIS 1: We predict that greater life stress will be associated with 
+#greater self-reported impulsivity on all three subscales of the short version 
+#of the UPPS, specifically emotion-based rash action, sensation seeking, and 
+#deficits in conscientiousness. ANALYSIS: We will use one-tailed, Pearson's 
+#correlations to examine these relationships.
+
+cor.test(slusbidata$stressctlog, slusbidata$posurgcor, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "posurgcor", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Positive Urgency")
+
+cor.test(slusbidata$stressctlog, slusbidata$negurgcor, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "negurgcor", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Negative Urgency")
+
+cor.test(slusbidata$stressctlog, slusbidata$lackpreslog, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "lackpreslog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Lacking Premeditation")
+
+cor.test(slusbidata$stressctlog, slusbidata$lackperslog, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "lackperslog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Lacking Persistence")
+
+cor.test(slusbidata$stressctlog, slusbidata$senseekcor, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "senseekcor", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Sensation Seeking")
+```
+
+```{r HYPOTHESIS 2}
+####HYPTOHESIS 2: We predict that greater life stress will be associated with 
+#greater reports of negative consequences of drinking alcohol assessed with the 
+#Brief Young Adult Alcohol Consequences Questionnaire. ANALYSIS: A one-tailed, 
+#Pearson's correlation will be used to examine life stress and alcohol behavior.
+
+cor.test(slusbidata$stressctlog, slusbidata$yaacqlog, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "yaacqlog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Young Adult Alcohol Consequences Questionnaire")
+
+cor.test(slusbidata$stressthlog, slusbidata$yaacqlog, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressthlog", y = "yaacqlog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Severity", ylab = "Young Adult Alcohol Consequences Questionnaire")
+
+```
+
+```{r HYPOTHESIS 3}
+####HYPOTHESIS 3: We predict that greater life stress will be associated with 
+#greater reports of food addiction assessed with the modified Yale Food 
+#Addiction Scale. ANALYSIS: A one-tailed, Pearson's correlation will be used 
+#to examine life stress and food addictive behavior.
+cor.test(slusbidata$stressctlog, slusbidata$yfaslog, method=c("pearson"), alternative = c("greater"))
+ggscatter(slusbidata, x = "stressctlog", y = "yfaslog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Stress Count", ylab = "Yale Food Addiction Scale")
+```
+
+```{r HYPOTHESIS 5}
+####HYPOTHESIS 5: Life stress will interact with impulsivity to explain 
+#increased negative consequences of drinking alcohol. ANALYSIS: A moderated 
+#regression will examine the interaction of life stress (predictor) and 
+#impulsivity (moderator) on drinking behavior (outcome). 
+
+####STRESSCT, NEGURG, YAACQ
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$negurgcor = scale(slusbidata$negurgcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$negurgcor <- as.numeric(scale(slusbidata$negurgcor))
+
+#Main Effects: StressCT, NegUrg, YAACQ
+M11 = lm(yaacqlog ~ stressctlog+negurgcor, data = slusbidata)
+
+#Two-Way Interation
+M12 = lm(yaacqlog ~ stressctlog*negurgcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M12)
+
+#Table
+sjPlot::plot_models(M11,M12)
+
+summary(M12)
+```
+
+```{r HYPOTHESIS 5b}
+####STRESSCT, POSURG, YAACQ
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$posurgcor = scale(slusbidata$posurgcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$posurgcor <- as.numeric(scale(slusbidata$posurgcor))
+
+#Main Effects: StressCT, PosUrg, YAACQ
+M13 = lm(yaacqlog ~ stressctlog+posurgcor, data = slusbidata)
+
+#Two-Way Interation
+M14 = lm(yaacqlog ~ stressctlog*posurgcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M14)
+
+#Table
+sjPlot::plot_models(M13,M14)
+
+summary(M14)
+```
+
+```{r HYPOTHESIS 5c}
+####STRESSCT, SENSEEK, YAACQ
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$senseekcor = scale(slusbidata$senseekcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$senseekcor <- as.numeric(scale(slusbidata$senseekcor))
+
+#Main Effects: StressCT, Senseek, YAACQ
+M15 = lm(yaacqlog ~ stressctlog+senseekcor, data = slusbidata)
+
+#Two-Way Interation
+M16 = lm(yaacqlog ~ stressctlog*senseekcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M16)
+
+#Table
+sjPlot::plot_models(M15,M16)
+
+summary(M16)
+```
+
+```{r HYPOTHESIS 5d}
+####STRESSCT, LACKPRES, YAACQ
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$lackpreslog = scale(slusbidata$lackpreslog, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$lackpreslog <- as.numeric(scale(slusbidata$lackpreslog))
+
+#Main Effects: StressCT, lackpres, YAACQ
+M17 = lm(yaacqlog ~ stressctlog+lackpreslog, data = slusbidata)
+
+#Two-Way Interation
+M18 = lm(yaacqlog ~ stressctlog*lackpreslog, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M18)
+
+#Table
+sjPlot::plot_models(M17,M18)
+
+summary(M18)
+```
+
+```{r HYPOTHESIS 5e}
+####STRESSCT, LACKPERS, YAACQ
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$lackperslog = scale(slusbidata$lackperslog, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$lackperslog <- as.numeric(scale(slusbidata$lackperslog))
+
+#Main Effects: StressCT, lackpers, YAACQ
+M19 = lm(yaacqlog ~ stressctlog+lackperslog, data = slusbidata)
+
+#Two-Way Interation
+M20 = lm(yaacqlog ~ stressctlog*lackperslog, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M20)
+
+#Table
+sjPlot::plot_models(M19,M20)
+
+summary(M20)
+```
+
+
+```{r HYPOTHESIS 6}
+####HYPOTHESIS 6: Life stress will interact with impulsivity to explain 
+#increased reports of food addiction. Analysis: A moderated regression will 
+#examine the interaction of life stress (predictor) and impulsivity (moderator) 
+#on food addiction (outcome).
+
+####STRESSCT, NEGURG, YFAS
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$negurgcor = scale(slusbidata$negurgcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$negurgcor <- as.numeric(scale(slusbidata$negurgcor))
+
+#Main Effects: StressCT, NegUrg, yfas with GENDER AS COVARIATE
+M1 = lm(yfaslog ~ Gender+stressctlog+negurgcor, data = slusbidata)
+
+#Two-Way Interation
+M2a = lm(yfaslog ~ stressctlog*negurgcor, data = slusbidata)
+M2b = lm(yfaslog ~ Gender+stressctlog*negurgcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M2b)
+
+#Table
+sjPlot::plot_models(M2b)
+
+summary(M2b)
+
+
+```
+
+```{r HYPOTHESIS 6b}
+####STRESSCT, POSURG, YFAS
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$posurgcor = scale(slusbidata$posurgcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$posurgcor <- as.numeric(scale(slusbidata$posurgcor))
+
+#Main Effects: StressCT, PosUrg, yfas with GENDER AS COVARIATE
+M3 = lm(yfaslog ~ Gender+stressctlog+posurgcor, data = slusbidata)
+
+#Two-Way Interation
+M4a = lm(yfaslog ~ stressctlog*posurgcor, data = slusbidata)
+M4b = lm(yfaslog ~ Gender+stressctlog*posurgcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M4b)
+
+#Table
+sjPlot::plot_models(M4b)
+
+summary(M4b)
+
+```
+
+```{r HYPOTHESIS 6c}
+####STRESSCT, SENSEEK, YFAS
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$senseekcor = scale(slusbidata$senseekcor, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$senseekcor <- as.numeric(scale(slusbidata$senseekcor))
+
+#Main Effects: StressCT, SenSeek, yfas with GENDER AS COVARIATE
+M5 = lm(yfaslog ~ Gender+stressctlog+senseekcor, data = slusbidata)
+
+#Two-Way Interation
+M6a = lm(yfaslog ~ stressctlog*senseekcor, data = slusbidata)
+M6b = lm(yfaslog ~ Gender+stressctlog*senseekcor, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M6b)
+
+#Table
+sjPlot::plot_models(M6b)
+
+summary(M6b)
+
+```
+
+```{r HYPOTHESIS 6D}
+####STRESSCT, LACKPRES, YFAS
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$lackpreslog = scale(slusbidata$lackpreslog, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$lackpreslog <- as.numeric(scale(slusbidata$lackpreslog))
+
+#Main Effects: StressCT, LACKPRES, yfas with GENDER AS COVARIATE
+M7 = lm(yfaslog ~ Gender+stressctlog+lackpreslog, data = slusbidata)
+
+#Two-Way Interation 
+M8 = lm(yfaslog ~ Gender+stressctlog*lackpreslog, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M8)
+
+#Table
+sjPlot::plot_models(M8)
+
+summary(M8)
+
+```
+
+```{r HYPOTHESIS 6E}
+####STRESSCT, LACKPERS, YFAS
+#1. Mean Center IV & MOD
+slusbidata$stressctlog = scale(slusbidata$stressctlog, center = TRUE, scale = FALSE)
+slusbidata$lackperslog = scale(slusbidata$lackperslog, center = TRUE, scale = FALSE)
+slusbidata$stressctlog <- as.numeric(scale(slusbidata$stressctlog))
+slusbidata$lackperslog <- as.numeric(scale(slusbidata$lackperslog))
+
+#Main Effects: StressCT, LACKPERS, yfas with GENDER AS COVARIATE
+M9 = lm(yfaslog ~ Gender+stressctlog+lackperslog, data = slusbidata)
+
+#Two-Way Interation 
+M10 = lm(yfaslog ~ Gender+stressctlog*lackperslog, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M10)
+
+#Table
+sjPlot::plot_models(M10)
+
+summary(M10)
+
+```
+
+```{r EXPLORATORY ANALYSES}
+#SENSITIZATION/MISMATCH THEORY AND YFAS
+#1. Mean Center IV & MOD
+slusbidata$adultct = scale(slusbidata$adultct, center = TRUE, scale = FALSE)
+slusbidata$eadiffct = scale(slusbidata$eadiffct, center = TRUE, scale = FALSE)
+slusbidata$adultct <- as.numeric(scale(slusbidata$adultct))
+slusbidata$eadiffct <- as.numeric(scale(slusbidata$eadiffct))
+
+#Main Effects: early life, adult life stress with GENDER AS COVARIATE for YFAS
+M9 = lm(yfaslog ~ Gender+eadiffct+adultct, data = slusbidata)
+
+#Two-Way Interation
+M10 = lm(yfaslog ~ Gender+eadiffct*adultct, data = slusbidata)
+M10b = lm(yfas ~ Gender+eadiffct*adultct, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M10)
+
+#Table
+sjPlot::plot_models(M10)
+
+summary(M10)
+interact_plot(M10b, pred = eadiffct, modx = adultct, x.label = "Early Life Stressor Count", 
+              y.label = "Food Addiction", legend.main = "Adulthood Stressor Count")
+
+interact_plot(M10, pred = adultct, modx = eadiffct, legend.main = "Early Life Stressor Count", 
+              y.label = "Food Addiction", x.label = "Adulthood Stressor Count")
+
+
+
+```
+
+```{r EXPLORATORY ANALYSES}
+#SENSITIZATION/MISMATCH THEORY AND YAACQ
+
+#Main Effects: early life, adult life stress with GENDER AS COVARIATE for YAACQ
+M150 = lm(yaacqlog ~ Gender + adultctlog+eadiffctlog, data = slusbidata)
+
+#Two-Way Interation
+M200 = lm(yaacqlog ~ Gender + adultctlog*eadiffctlog, data = slusbidata)
+
+#Simple Slopes
+reghelper::simple_slopes(M200)
+
+#Table
+sjPlot::plot_models(M150,M200)
+
+summary(M200)
+```
+
+```{r EXPLORATORY ANALYSES}
+#STRESS TIMING CORRELATIONS
+
+cor.test(slusbidata$eadiffctlog, slusbidata$yfaslog, method=c("pearson"))
+ggscatter(slusbidata, x = "eadiffctlog", y = "yfaslog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Early Life Stress count", ylab = "YFAS")
+
+
+cor.test(slusbidata$adultctlog, slusbidata$yfaslog, method=c("pearson"))
+ggscatter(slusbidata, x = "adultctlog", y = "yfaslog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Adult Life Stress Count", ylab = "YFAS")
+
+cor.test(slusbidata$eadiffctlog, slusbidata$yaacqlog, method=c("pearson"))
+ggscatter(slusbidata, x = "eadiffctlog", y = "yaacqlog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Early Stress Count", ylab = "Young Adult Alcohol Consequences Questionnaire")
+
+cor.test(slusbidata$adultctlog, slusbidata$yaacqlog, method=c("pearson"))
+ggscatter(slusbidata, x = "adultctlog", y = "yaacqlog", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Adult Stress Count", ylab = "Young Adult Alcohol Consequences Questionnaire")
+
+```
